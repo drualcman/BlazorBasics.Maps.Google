@@ -1,0 +1,49 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+		<Version>1.0.0</Version>
+		<Authors>Sergi Ortiz Gomez</Authors>
+		<Company>DrUalcman</Company>
+		<Description>
+			A Blazor component for integrating Google Maps into your applications. Easily display interactive maps, add custom markers, show routes with waypoints, and manage map interactions using a simple C# interface. Requires a Google Maps API key and the Maps JavaScript API.
+		</Description>
+		<Copyright>Free</Copyright>
+		<PackageLicenseFile>LICENSE.md</PackageLicenseFile>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<RepositoryUrl>https://github.com/drualcman/BlazorBasics.InputFileExtended</RepositoryUrl>
+		<PackageProjectUrl>https://blazorinputfileextended.community-mall.com/</PackageProjectUrl>
+		<PackageTags>Components;Blazor;WebAssembly;Maps;Google Maps;</PackageTags>
+		<PackageReleaseNotes>First release.</PackageReleaseNotes>
+		<RepositoryType>Git</RepositoryType>
+		<PackageIcon>icon.png</PackageIcon>
+		<PackageIconUrl />
+	</PropertyGroup>
+	
+	<ItemGroup>
+		<None Include="..\icon.png">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Include="..\LICENSE.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Include="..\README.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+		<SupportedPlatform Include="browser" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="9.0.9" />
+	</ItemGroup>
+
+</Project>
