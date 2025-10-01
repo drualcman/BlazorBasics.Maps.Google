@@ -9,7 +9,13 @@ public partial class GoogleMapComponent
 
     private string DOMMapId = $"map_{Guid.NewGuid()}";
     private string ScriptId = "BlazorBasicsMapsGoogleScript";
-    private IJSObjectReference? _googleMapsModule;
+    private IJSObjectReference? GoogleMapsModule;
+    private DotNetObjectReference<GoogleMapComponent>? dotNetRef;
+
+    protected override void OnInitialized()
+    {
+        dotNetRef = DotNetObjectReference.Create(this);
+    }
 
     protected override void OnParametersSet()
     {
@@ -24,13 +30,14 @@ public partial class GoogleMapComponent
         if (firstRender && !string.IsNullOrWhiteSpace(ApiKey))
         {
             // Import the JS module from your assembly
-            _googleMapsModule = await JS.InvokeAsync<IJSObjectReference>(
+            GoogleMapsModule = await JS.InvokeAsync<IJSObjectReference>(
                 "import", $"./{ContentHelper.ContentPath}/loadGoogleMaps.js");
 
-            bool loaded = await _googleMapsModule.InvokeAsync<bool>("load", ApiKey, ScriptId);
+            bool loaded = await GoogleMapsModule.InvokeAsync<bool>("load", ApiKey, ScriptId);
             if (loaded)
             {
-                await _googleMapsModule.InvokeVoidAsync("initMap", DOMMapId, MapId);
+                await GoogleMapsModule.InvokeVoidAsync("initMap", DOMMapId, MapId);
+                await GoogleMapsModule.InvokeVoidAsync("enableMapClick", dotNetRef, "OnMapClick");
 
                 if (OnMapReady.HasDelegate)
                 {
@@ -42,9 +49,9 @@ public partial class GoogleMapComponent
 
     public async Task AddPoint(RoutePoint point)
     {
-        if (_googleMapsModule is not null)
+        if (GoogleMapsModule is not null)
         {
-            await _googleMapsModule.InvokeVoidAsync("addPoint",
+            await GoogleMapsModule.InvokeVoidAsync("addPoint",
                 point.Id, point.Position.Latitude, point.Position.Longitude,
                 point.Description, point.SvgIcon, point.HtmlContent);
         }
@@ -52,33 +59,33 @@ public partial class GoogleMapComponent
 
     public async Task RemovePoint(string id)
     {
-        if (_googleMapsModule is not null)
+        if (GoogleMapsModule is not null)
         {
-            await _googleMapsModule.InvokeVoidAsync("removePoint", id);
+            await GoogleMapsModule.InvokeVoidAsync("removePoint", id);
         }
     }
 
     public async Task CenterMap(PositionPoint point)
     {
-        if (_googleMapsModule is not null)
+        if (GoogleMapsModule is not null)
         {
-            await _googleMapsModule.InvokeVoidAsync("centerMap", point.Latitude, point.Longitude);
+            await GoogleMapsModule.InvokeVoidAsync("centerMap", point.Latitude, point.Longitude);
         }
     }
 
     public async Task ClearMap()
     {
-        if (_googleMapsModule is not null)
+        if (GoogleMapsModule is not null)
         {
-            await _googleMapsModule.InvokeVoidAsync("cleanMap");
+            await GoogleMapsModule.InvokeVoidAsync("cleanMap");
         }
     }
 
     public async Task ShowRoute(PositionPoint startPoint, PositionPoint endPoint, string travelMode = "DRIVING")
     {
-        if (_googleMapsModule is not null)
+        if (GoogleMapsModule is not null)
         {
-            await _googleMapsModule.InvokeVoidAsync("showRoute",
+            await GoogleMapsModule.InvokeVoidAsync("showRoute",
                 startPoint.Latitude, startPoint.Longitude,
                 endPoint.Latitude, endPoint.Longitude,
                 travelMode);
@@ -87,25 +94,59 @@ public partial class GoogleMapComponent
 
     public async Task ShowRouteWithWaypoints(IEnumerable<RoutePoint> points, string travelMode = "DRIVING")
     {
-        if (_googleMapsModule is not null)
+        if (GoogleMapsModule is not null)
         {
-            await _googleMapsModule.InvokeVoidAsync("showRouteWithWaypoints", points, travelMode);
+            await GoogleMapsModule.InvokeVoidAsync("showRouteWithWaypoints", points, travelMode);
         }
     }
 
     public async Task HighlightMarker(string id)
     {
-        if (_googleMapsModule is not null)
+        if (GoogleMapsModule is not null)
         {
-            await _googleMapsModule.InvokeVoidAsync("highlightMarker", id);
+            await GoogleMapsModule.InvokeVoidAsync("highlightMarker", id);
         }
     }
 
     public async Task UnhighlightMarker(string id)
     {
-        if (_googleMapsModule is not null)
+        if (GoogleMapsModule is not null)
         {
-            await _googleMapsModule.InvokeVoidAsync("unhighlightMarker", id);
+            await GoogleMapsModule.InvokeVoidAsync("unhighlightMarker", id);
+        }
+    }
+
+    [JSInvokable]
+    public void OnMapClick(double lat, double lng, string address, AddressDetails? placeDetails)
+    {
+        // Aquí manejas el evento: lat/lng, dirección, y detalles adicionales
+        Console.WriteLine($"Clic en: {lat}, {lng} - Dirección: {address}");
+
+        if (placeDetails != null)
+        {
+            // Ahora puedes acceder tipado, con IntelliSense y sin casting
+            Console.WriteLine($"Calle: {placeDetails.Route} {placeDetails.StreetNumber}");
+            Console.WriteLine($"Barrio: {placeDetails.Neighborhood}");
+            Console.WriteLine($"Ciudad: {placeDetails.Locality}");
+            Console.WriteLine($"País: {placeDetails.Country}");
+            // ... y más lógica, como guardar en una lista o actualizar UI
+        }
+        else
+        {
+            Console.WriteLine("No se pudieron obtener detalles de la dirección.");
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (GoogleMapsModule is not null)
+        {
+            if (dotNetRef is not null)
+            {
+                dotNetRef.Dispose();
+                await GoogleMapsModule.InvokeVoidAsync("disableMapClick");
+            }
+            await GoogleMapsModule.DisposeAsync();
         }
     }
 }

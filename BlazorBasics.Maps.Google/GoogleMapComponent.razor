@@ -1,4 +1,5 @@
-﻿@if (!string.IsNullOrWhiteSpace(ApiKey))
+﻿@implements IAsyncDisposable
+@if (!string.IsNullOrWhiteSpace(ApiKey))
 {
     <div id="@DOMMapId" class="map"></div>
 }

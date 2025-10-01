@@ -4,6 +4,10 @@ let directionsService = null;
 let directionsRenderer = null;
 let routeMarkers = [];
 let activeMarker = null;
+let geocoder = null;
+let mapClickListener = null;
+let dotNetHelper = null;
+let mapClickMethodName = null;
 
 function load(apiKey, scriptId) {
     return new Promise((resolve, reject) => {
@@ -47,8 +51,85 @@ function initMap(elementId, mapId) {
         suppressMarkers: true,
         map: map
     });
+
+    geocoder = new google.maps.Geocoder();
 }
 
+function enableMapClick(dotNetReference, methodName) {
+
+    console.log("Map click handler.", dotNetReference, methodName);
+    if (!map) {
+        console.warn("Map not initialized. Cannot enable click handling.");
+        return false;
+    }
+
+    if (mapClickListener) {
+        console.warn("Map click handler already enabled.");
+        return false;
+    }
+
+    dotNetHelper = dotNetReference;
+    mapClickMethodName = methodName;
+
+    mapClickListener = google.maps.event.addListener(map, 'click', (event) => {
+        const latLng = event.latLng;
+        const lat = latLng.lat();
+        const lng = latLng.lng();
+
+        // Realizar geocodificación inversa para obtener la dirección
+        geocoder.geocode({ location: latLng }, (results, status) => {
+            let address = '';
+            let placeDetails = null;
+
+            if (status === google.maps.GeocoderStatus.OK && results && results.length > 0) {
+                const result = results[0];
+                address = result.formatted_address || '';
+                // Información adicional: componentes de la dirección (opcional)
+                placeDetails = {
+                    streetNumber: '',
+                    route: '',
+                    neighborhood: '',
+                    locality: '',
+                    administrativeArea: '',
+                    country: '',
+                    postalCode: ''
+                };
+                result.address_components.forEach(component => {
+                    const types = component.types;
+                    if (types.includes('street_number')) placeDetails.streetNumber = component.long_name;
+                    if (types.includes('route')) placeDetails.route = component.long_name;
+                    if (types.includes('neighborhood') || types.includes('sublocality')) placeDetails.neighborhood = component.long_name;
+                    if (types.includes('locality') || types.includes('administrative_area_level_2')) placeDetails.locality = component.long_name;
+                    if (types.includes('administrative_area_level_1')) placeDetails.administrativeArea = component.long_name;
+                    if (types.includes('country')) placeDetails.country = component.long_name;
+                    if (types.includes('postal_code')) placeDetails.postalCode = component.long_name;
+                });
+            } else {
+                console.warn('Geocoder failed due to: ' + status);
+            }
+
+            // Enviar datos a Blazor vía JSInterop
+            if (dotNetHelper && mapClickMethodName) {
+                dotNetHelper.invokeMethodAsync(mapClickMethodName, lat, lng, address, placeDetails);
+            }
+        });
+    });
+
+    console.log("Map click handler enabled.");
+    return true;
+}
+
+function disableMapClick() {
+    if (mapClickListener) {
+        google.maps.event.removeListener(mapClickListener);
+        mapClickListener = null;
+        dotNetHelper = null;
+        mapClickMethodName = null;
+        console.log("Map click handler disabled.");
+        return true;
+    }
+    return false;
+}
 
 function addPoint(id, lat, lng, desc, svgIcon, htmlContent) {
     if (!map) return false;
@@ -95,8 +176,6 @@ function addPoint(id, lat, lng, desc, svgIcon, htmlContent) {
         });
     }
 }
-
-
 
 function centerMap(lat, lng) {
     if (!map) return false;
@@ -383,6 +462,8 @@ function unhighlightMarker(id) {
 export {
     load,
     initMap,
+    enableMapClick,
+    disableMapClick,
     addPoint,
     centerMap,
     removePoint,
