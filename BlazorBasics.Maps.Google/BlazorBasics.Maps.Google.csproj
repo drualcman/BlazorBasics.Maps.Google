@@ -14,8 +14,8 @@
 		<Copyright>Free</Copyright>
 		<PackageLicenseFile>LICENSE.md</PackageLicenseFile>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<RepositoryUrl>https://github.com/drualcman/BlazorBasics.InputFileExtended</RepositoryUrl>
-		<PackageProjectUrl>https://blazorinputfileextended.community-mall.com/</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/drualcman/BlazorBasics.Maps.Google</RepositoryUrl>
+		<PackageProjectUrl>https://github.com/drualcman/BlazorBasics.Maps.Google</PackageProjectUrl>
 		<PackageTags>Components;Blazor;WebAssembly;Maps;Google Maps;</PackageTags>
 		<PackageReleaseNotes>First release.</PackageReleaseNotes>
 		<RepositoryType>Git</RepositoryType>
