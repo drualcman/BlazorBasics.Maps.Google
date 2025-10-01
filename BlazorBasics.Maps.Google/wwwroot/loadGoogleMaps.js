@@ -55,27 +55,11 @@ function initMap(elementId, mapId) {
     geocoder = new google.maps.Geocoder();
 }
 
-function enableMapClick(dotNetReference, methodName) {
-
-    console.log("Map click handler.", dotNetReference, methodName);
-    if (!map) {
-        console.warn("Map not initialized. Cannot enable click handling.");
-        return false;
-    }
-
-    if (mapClickListener) {
-        console.warn("Map click handler already enabled.");
-        return false;
-    }
-
-    dotNetHelper = dotNetReference;
-    mapClickMethodName = methodName;
-
-    mapClickListener = google.maps.event.addListener(map, 'click', (event) => {
-        const latLng = event.latLng;
-        const lat = latLng.lat();
-        const lng = latLng.lng();
-
+// Función compartida para geocodificar y enviar a Blazor
+function sendClickToBlazor(lat, lng, markerId = null) {
+    // Enviar datos a Blazor vía JSInterop
+    if (dotNetHelper && mapClickMethodName) {
+        const latLng = new google.maps.LatLng(lat, lng);
         // Realizar geocodificación inversa para obtener la dirección
         geocoder.geocode({ location: latLng }, (results, status) => {
             let address = '';
@@ -108,14 +92,32 @@ function enableMapClick(dotNetReference, methodName) {
                 console.warn('Geocoder failed due to: ' + status);
             }
 
-            // Enviar datos a Blazor vía JSInterop
-            if (dotNetHelper && mapClickMethodName) {
-                dotNetHelper.invokeMethodAsync(mapClickMethodName, lat, lng, address, placeDetails);
-            }
+            dotNetHelper.invokeMethodAsync(mapClickMethodName, lat, lng, address, placeDetails, markerId);
         });
-    });
+    } 
+}
 
-    console.log("Map click handler enabled.");
+function enableMapClick(dotNetReference, methodName) {
+    if (!map) {
+        console.warn("Map not initialized. Cannot enable click handling.");
+        return false;
+    }
+
+    if (mapClickListener) {
+        return false;
+    }
+
+    dotNetHelper = dotNetReference;
+    mapClickMethodName = methodName;
+
+    mapClickListener = google.maps.event.addListener(map, 'click', (event) => {
+        const latLng = event.latLng;
+        const lat = latLng.lat();
+        const lng = latLng.lng();
+
+        // Llamar a la función compartida (con markerId null para clics en mapa)
+        sendClickToBlazor(lat, lng, null);
+    });
     return true;
 }
 
@@ -125,7 +127,6 @@ function disableMapClick() {
         mapClickListener = null;
         dotNetHelper = null;
         mapClickMethodName = null;
-        console.log("Map click handler disabled.");
         return true;
     }
     return false;
@@ -167,13 +168,25 @@ function addPoint(id, lat, lng, desc, svgIcon, htmlContent) {
             content: htmlContent
         });
 
-        marker.addListener("click", () => {
+        // Handler para clic en marcador
+        const onMarkerClick = () => {
             infoWindow.open({
                 anchor: marker,
                 map,
                 shouldFocus: false
             });
-        });
+
+            // Enviar a Blazor con el ID del marcador
+            sendClickToBlazor(lat, lng, id);
+        };
+
+        marker.addListener("click", onMarkerClick);
+    } else {
+        // Si no hay htmlContent, aún así enviar a Blazor al clic
+        const onMarkerClick = () => {
+            sendClickToBlazor(lat, lng, id);
+        };
+        marker.addListener("click", onMarkerClick);
     }
 }
 
@@ -219,8 +232,6 @@ function showRoute(startLat, startLng, endLat, endLng, travelMode = "DRIVING") {
 
 function showRouteWithWaypoints(points, travelMode = "DRIVING") {
     if (!map || !directionsService || !directionsRenderer) return false;
-
-    console.log(points);
 
     // Helper para asegurar que siempre devolvemos números desde tu DTO
     const toLatLng = (latLong) => {
@@ -307,6 +318,9 @@ function showRouteWithWaypoints(points, travelMode = "DRIVING") {
 
     function placeMarker(p, position, isEndpoint, idx) {
         const normPos = normalizePosition(position) || toLatLng(p.position);
+        const markerLat = normPos.lat;
+        const markerLng = normPos.lng;
+        const markerId = p.id || `route-${idx}`;
 
         // crear content (SVG en extremos, círculo intermedio)
         let markerContent;
@@ -396,6 +410,9 @@ function showRouteWithWaypoints(points, travelMode = "DRIVING") {
                     // fallback
                     infoWindow.open(map);
                 }
+
+                // Enviar a Blazor con el ID del marcador de ruta
+                sendClickToBlazor(markerLat, markerLng, markerId);
             };
 
             // IMPORTANT: attach listener to the content DOM node (works reliably)
@@ -409,11 +426,25 @@ function showRouteWithWaypoints(points, travelMode = "DRIVING") {
                     console.error("Could not attach click handler to marker content.", ee);
                 }
             }
+        } else {
+            // Si no hay htmlContent, aún así enviar a Blazor al clic
+            const onClick = () => {
+                sendClickToBlazor(markerLat, markerLng, markerId);
+            };
+            try {
+                markerContent.addEventListener("click", onClick);
+            } catch (e) {
+                try {
+                    google.maps.event.addListener(marker, "gmp-click", onClick);
+                } catch (ee) {
+                    console.error("Could not attach click handler to marker content.", ee);
+                }
+            }
         }
 
         routeMarkers.push(marker);
         marker.isFromRoute = true;
-        markers.set(p.id || `route-${idx}`, marker);
+        markers.set(markerId, marker);
     }
 }
 

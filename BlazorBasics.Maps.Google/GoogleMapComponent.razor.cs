@@ -6,6 +6,7 @@ public partial class GoogleMapComponent
     [Parameter] public string ApiKey { get; set; } = string.Empty;
     [Parameter] public string MapId { get; set; } = string.Empty;
     [Parameter] public EventCallback OnMapReady { get; set; }
+    [Parameter] public EventCallback<MapClickEventArgs> OnClick { get; set; }
 
     private string DOMMapId = $"map_{Guid.NewGuid()}";
     private string ScriptId = "BlazorBasicsMapsGoogleScript";
@@ -37,8 +38,10 @@ public partial class GoogleMapComponent
             if (loaded)
             {
                 await GoogleMapsModule.InvokeVoidAsync("initMap", DOMMapId, MapId);
-                await GoogleMapsModule.InvokeVoidAsync("enableMapClick", dotNetRef, "OnMapClick");
-
+                if (OnClick.HasDelegate)
+                {
+                    await GoogleMapsModule.InvokeVoidAsync("enableMapClick", dotNetRef, "OnMapClick");
+                }
                 if (OnMapReady.HasDelegate)
                 {
                     await OnMapReady.InvokeAsync();
@@ -116,24 +119,31 @@ public partial class GoogleMapComponent
         }
     }
 
-    [JSInvokable]
-    public void OnMapClick(double lat, double lng, string address, AddressDetails? placeDetails)
+    private PositionPoint? CreatePositionPoint(double? lat, double? lng)
     {
-        // Aquí manejas el evento: lat/lng, dirección, y detalles adicionales
-        Console.WriteLine($"Clic en: {lat}, {lng} - Dirección: {address}");
-
-        if (placeDetails != null)
+        if (lat is null || lng is null)
         {
-            // Ahora puedes acceder tipado, con IntelliSense y sin casting
-            Console.WriteLine($"Calle: {placeDetails.Route} {placeDetails.StreetNumber}");
-            Console.WriteLine($"Barrio: {placeDetails.Neighborhood}");
-            Console.WriteLine($"Ciudad: {placeDetails.Locality}");
-            Console.WriteLine($"País: {placeDetails.Country}");
-            // ... y más lógica, como guardar en una lista o actualizar UI
+            return null;
         }
-        else
+
+        try
         {
-            Console.WriteLine("No se pudieron obtener detalles de la dirección.");
+            return new PositionPoint((float)lat, (float)lng);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnMapClick(double? lat, double? lng, string address, AddressDetails? placeDetails, string? markerId)
+    {
+        PositionPoint? point = CreatePositionPoint(lat, lng);
+        MapClickEventArgs place = new MapClickEventArgs(markerId, point, address, placeDetails);
+        if (OnClick.HasDelegate)
+        {
+            await OnClick.InvokeAsync(place);
         }
     }
 
