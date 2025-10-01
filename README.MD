@@ -44,9 +44,10 @@ To display a Google Map, include the `GoogleMapComponent` in your Razor page and
 @using BlazorBasics.Maps.Google
 
 <GoogleMapComponent @ref="mapComponent"
-                   ApiKey="YOUR_GOOGLE_MAPS_API_KEY"
-                   MapId="YOUR_CUSTOM_MAP_ID"
-                   OnMapReady="@OnMapReadyCallback" />
+                  ApiKey="TU_CLAVE_DE_API_DE_GOOGLE_MAPS"
+                  MapId="TU_ID_DE_MAPA_PERSONALIZADO"
+                  OnMapReady="@OnMapReadyCallback"
+                  OnClick="@OnMapClickCallback" />
 
 @code {
     private GoogleMapComponent mapComponent = default!;
@@ -55,17 +56,24 @@ To display a Google Map, include the `GoogleMapComponent` in your Razor page and
     {
         Console.WriteLine("Map is ready!");
     }
+    
+    private void OnMapClickCallback(MapClickEventArgs args)
+    {
+        Console.WriteLine($"Lat: {args.Point?.Latitude}, Lng: {args.Point?.Longitude}");
+        Console.WriteLine($"Address: {args.Address}");
+    }
 }
 ```
 
 ### Component Parameters
 
-| Parameter   | Type            | Description                                                                            |
-|-------------|-----------------|----------------------------------------------------------------------------------------|
-| `ApiKey`    | `string`        | **Required**. Your Google Maps API key.                                                |
-| `MapId`     | `string`        | **Required**. A custom map ID for styled maps.                                         |
-| `OnMapReady`| `EventCallback` | Optional. A callback invoked when the map is fully loaded and ready to use.            |
-|_____________|_________________|________________________________________________________________________________________|
+| Parameter   | Type                               | Description                                                                   |
+|-------------|------------------------------------|-------------------------------------------------------------------------------|
+| `ApiKey`    | `string`                           | **Required**. Your Google Maps API key.                                       |
+| `MapId`     | `string`                           | **Required**. A custom map ID for styled maps.                                |
+| `OnMapReady`| `EventCallback`                    | Optional. A callback invoked when the map is fully loaded and ready to use.   |
+| `OnClick`   | `EventCallback<MapClickEventArgs>` | Optional. A callback that is invoked when the map or a marker is clicked.     |
+|             |                                    | It returns the coordinates and address details.                               |
 
 ### Models
 
@@ -99,6 +107,25 @@ The library includes two main models:
         color: "blue"
     );
     ```
+  
+- **`MapClickEventArgs`**:
+    - Event arguments for the OnClick callback. Contains information about the point where the click was made.
+    - Properties:
+      - PointId: The marker ID if one was clicked; otherwise, null.
+      - Point: A PositionPoint with the click coordinates.
+      - Address: A string containing the address formatted at the point of the click (reverse geocoding).
+      - Details: An AddressDetails object with the address components broken down.
+
+  - **`AddressDetails`**
+    - Contains the broken-down components of an address obtained from reverse geocoding.
+    - Properties: 
+      - Street Number
+      - Route
+      - Neighborhood
+      - Locality
+      - Administrative Area (state/province)
+      - Country
+      - Postal Code.
 
 ### Available Methods
 
@@ -175,44 +202,71 @@ The `GoogleMapComponent` provides the following methods to interact with the map
 Below is an example of a Razor page that uses the `GoogleMapComponent` to display a map, add a marker, and show a route.
 
 ```razor
+@page "/map-example"
 @using BlazorBasics.Maps.Google
 @using BlazorBasics.Maps.Google.Models
 
+<h3>Example Interactive Map</h3>
+
 <GoogleMapComponent @ref="mapComponent"
-                   ApiKey="YOUR_GOOGLE_MAPS_API_KEY"
-                   MapId="YOUR_CUSTOM_MAP_ID"
-                   OnMapReady="@OnMapReadyCallback" />
+                  ApiKey="TU_CLAVE_DE_API_DE_GOOGLE_MAPS"
+                  MapId="TU_ID_DE_MAPA_PERSONALIZADO"
+                  OnMapReady="@OnMapReadyCallback"
+                  OnClick="@OnMapClickCallback" />
+
+<p>@clickedAddress</p>
 
 @code {
     private GoogleMapComponent mapComponent = default!;
+    private string clickedAddress = "Haz clic en el mapa para ver la dirección aquí.";
 
     private async Task OnMapReadyCallback()
     {
-        // Add a marker
-        var point = new RoutePoint(
-            id: "point1",
+        // Add marker
+        var sanFranciscoPoint = new RoutePoint(
+            id: "SF",
             point: new PositionPoint(37.7749f, -122.4194f),
             description: "San Francisco",
-            svgIcon: "<svg width='24' height='24'><circle cx='12' cy='12' r='10' fill='red'/></svg>",
+            svgIcon: "<svg width='24' height='24'><circle cx='12' cy='12' r='10' fill='blue'/></svg>",
             htmlContent: "<h3>San Francisco</h3>"
         );
-        await mapComponent.AddPoint(point);
+        await mapComponent.AddPoint(sanFranciscoPoint);
 
-        // Center the map
-        await mapComponent.CenterMap(new PositionPoint(37.7749f, -122.4194f));
+        // Centrer el map
+        await mapComponent.CenterMap(new PositionPoint(37.6f, -120f));
 
-        // Show a route
-        var start = new PositionPoint(37.7749f, -122.4194f);
-        var end = new PositionPoint(34.0522f, -118.2437f);
+        // Shor route
+        var start = new PositionPoint(37.7749f, -122.4194f); // San Francisco
+        var end = new PositionPoint(34.0522f, -118.2437f);   // Los Angeles
         await mapComponent.ShowRoute(start, end, "DRIVING");
+    }
+
+    private void OnMapClickCallback(MapClickEventArgs args)
+    {
+        if (args.PointId is not null)
+        {
+            clickedAddress = $"Click on marker ID: {args.PointId}.";
+        }
+        if (args.Address is not null)
+        {
+            clickedAddress = $"Clic address: {args.Address}";
+            // Also from details ...
+            // var country = args.Details?.Country;
+        }
+        else
+        {
+            clickedAddress = "Can't get the address.";
+        }
+        StateHasChanged();
     }
 }
 ```
 
 ## Notes
 
-- **JavaScript Interop**: The library relies on the `loadGoogleMaps.js` file for Google Maps API interactions. Ensure this file is correctly implemented and includes functions like `load`, `initMap`, `addPoint`, `removePoint`, `centerMap`, `cleanMap`, `showRoute`, `showRouteWithWaypoints`, `highlightMarker`, and `unhighlightMarker`.
-- **Error Handling**: The component checks for a valid `ApiKey`. If missing, it displays a message: "Api Key is missing!".
+- **JavaScript Interop**: The library relies on the `loadGoogleMaps.js` file for Google Maps API interactions. Ensure this file is correctly implemented and includes functions like `load`, `initMap`, `addPoint`, `removePoint`, `centerMap`, `cleanMap`, `showRoute`, `showRouteWithWaypoints`, `highlightMarker`, `unhighlightMarker`, `enableMapClick` and `disableMapClick` .
+- **Error Handling**: The component checks for a valid `ApiKey`. If missing, it displays a message: "API Key is required to load Google Maps.".
+- **Error Handling**: The component checks for a valid `MapId`. If missing, it displays a message: "MapId is required to identify the map instance.".
 - **Coordinate Validation**: The `PositionPoint` struct validates latitude and longitude to prevent invalid coordinates.
 - **Custom Styling**: Use the `MapId` parameter to apply custom map styles created in the Google Cloud Console.
 
