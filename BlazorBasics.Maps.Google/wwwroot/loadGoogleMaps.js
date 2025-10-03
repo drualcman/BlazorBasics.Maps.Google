@@ -145,8 +145,6 @@ function addPoint(id, lat, lng, desc, svgIcon, htmlContent) {
     if (svgIcon) {
         const img = document.createElement("img");
         img.src = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svgIcon)}`;
-        img.style.width = "100px";   // mismo tamaño que antes
-        img.style.height = "100px";
         img.style.transform = "translate(-50%, -50%)"; // centra el icono
         img.style.position = "absolute"; // evita desplazamientos
         markerContent = img;
@@ -327,8 +325,6 @@ function showRouteWithWaypoints(points, travelMode = "DRIVING") {
         if (p.svgIcon && isEndpoint) {
             const img = document.createElement("img");
             img.src = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(p.svgIcon)}`;
-            img.style.width = "100px";
-            img.style.height = "100px";
             // keep center on coord and allow pointer events
             img.style.transform = "translate(-50%, -50%)";
             img.style.position = "absolute";
@@ -340,7 +336,7 @@ function showRouteWithWaypoints(points, travelMode = "DRIVING") {
             div.style.width = "12px";
             div.style.height = "12px";
             div.style.borderRadius = "50%";
-            div.style.backgroundColor = p.color || "blue";
+            div.style.backgroundColor = p.color || "green";
             div.style.transform = "translate(-50%, -50%)";
             div.style.position = "absolute";
             div.style.cursor = "pointer";

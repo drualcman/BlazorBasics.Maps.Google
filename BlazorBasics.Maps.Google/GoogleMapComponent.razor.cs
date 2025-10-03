@@ -32,7 +32,7 @@ public partial class GoogleMapComponent
         {
             // Import the JS module from your assembly
             GoogleMapsModule = await JS.InvokeAsync<IJSObjectReference>(
-                "import", $"./{ContentHelper.ContentPath}/loadGoogleMaps.js");
+                "import", $"./{ContentHelper.ContentPath}/loadGoogleMaps.js?v={DateTime.Now.Ticks}");
 
             bool loaded = await GoogleMapsModule.InvokeAsync<bool>("load", ApiKey, ScriptId);
             if (loaded)
