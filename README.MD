@@ -161,17 +161,17 @@ The `GoogleMapComponent` provides the following methods to interact with the map
      await mapComponent.ClearMap();
      ```
 
-5. **`ShowRoute(PositionPoint startPoint, PositionPoint endPoint, string travelMode = "DRIVING")`**:
+5. **`ShowRoute(PositionPoint startPoint, PositionPoint endPoint, string travelMode = "DRIVING", string routeId = "Route", string color = "#1a73e8")`**:
    - Displays a route between two points.
    - Supported `travelMode` values: `"DRIVING"`, `"WALKING"`, `"BICYCLING"`, `"TRANSIT"`.
    - Example:
      ```csharp
      var start = new PositionPoint(37.7749f, -122.4194f);
      var end = new PositionPoint(34.0522f, -118.2437f);
-     await mapComponent.ShowRoute(start, end, "DRIVING");
+     await mapComponent.ShowRoute(start, end, "DRIVING", "route1", "red");
      ```
 
-6. **`ShowRouteWithWaypoints(IEnumerable<RoutePoint> points, string travelMode = "DRIVING")`**:
+6. **`ShowRouteWithWaypoints(IEnumerable<RoutePoint> points, string travelMode = "DRIVING", string routeId = "Route", string color = "#1a73e8")`**:
    - Displays a route with waypoints.
    - Example:
      ```csharp
@@ -180,7 +180,7 @@ The `GoogleMapComponent` provides the following methods to interact with the map
          new RoutePoint("point1", new PositionPoint(37.7749f, -122.4194f), "San Francisco", "", ""),
          new RoutePoint("point2", new PositionPoint(36.1699f, -115.1398f), "Las Vegas", "", "")
      };
-     await mapComponent.ShowRouteWithWaypoints(points, "DRIVING");
+     await mapComponent.ShowRouteWithWaypoints(points, "DRIVING", "route1", "red");
      ```
 
 7. **`HighlightMarker(string id)`**:
@@ -195,6 +195,13 @@ The `GoogleMapComponent` provides the following methods to interact with the map
    - Example:
      ```csharp
      await mapComponent.UnhighlightMarker("point1");
+     ```
+
+9. **`RemoveRoute(string routeId)`**:
+   - Removes route by its ID.
+   - Example:
+     ```csharp
+     await mapComponent.RemoveRoute("route1");
      ```
 
 ### Example: Full Implementation
@@ -231,14 +238,26 @@ Below is an example of a Razor page that uses the `GoogleMapComponent` to displa
             htmlContent: "<h3>San Francisco</h3>"
         );
         await mapComponent.AddPoint(sanFranciscoPoint);
+        await mapComponent.RemovePoint("marker-id");
 
         // Centrer el map
         await mapComponent.CenterMap(new PositionPoint(37.6f, -120f));
 
-        // Shor route
+        // Show route
         var start = new PositionPoint(37.7749f, -122.4194f); // San Francisco
         var end = new PositionPoint(34.0522f, -118.2437f);   // Los Angeles
-        await mapComponent.ShowRoute(start, end, "DRIVING");
+        await mapComponent.ShowRoute(startPoint: start, endPoint: end, travelMode: "DRIVING", routeId: "route-id", color: "red");
+        var points = new List<RoutePoint>
+        {
+            new RoutePoint(id: "SF", point: new PositionPoint(37.7749f, -122.4194f), description: "San Francisco", svgIcon: "", htmlContent: "", color: "red"),
+            new RoutePoint(id: "LV", point: new PositionPoint(36.1699f, -115.1398f), description: "Las Vegas", svgIcon: "", htmlContent: "", color: "yellow"),
+            new RoutePoint(id: "LA", point: new PositionPoint(34.0522f, -118.2437f), description: "Los Angeles", svgIcon: "", htmlContent: "", color: "green")
+        };
+        await mapComponent.ShowRouteWithWaypoints(points, travelMode: "DRIVING", routeId: "route-id", color: "green");
+        await mapComponent.RemoveRoute("route-id");
+        await mapComponent.HighlightMarker("marker-id", color: "black");
+        await mapComponent.UnhighlightMarker("marker-id");
+        await mapComponent.ClearMap();
     }
 
     private void OnMapClickCallback(MapClickEventArgs args)
