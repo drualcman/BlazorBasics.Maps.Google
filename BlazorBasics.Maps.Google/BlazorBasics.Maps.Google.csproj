@@ -5,7 +5,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-		<Version>1.0.1</Version>
+		<Version>1.0.2</Version>
 		<Authors>Sergi Ortiz Gomez</Authors>
 		<Company>DrUalcman</Company>
 		<Description>
@@ -17,7 +17,7 @@
 		<RepositoryUrl>https://github.com/drualcman/BlazorBasics.Maps.Google</RepositoryUrl>
 		<PackageProjectUrl>https://github.com/drualcman/BlazorBasics.Maps.Google</PackageProjectUrl>
 		<PackageTags>Components;Blazor;WebAssembly;Maps;Google Maps;</PackageTags>
-		<PackageReleaseNotes>Fixed fix image size. Avoid cache issues when load Javascript.</PackageReleaseNotes>
+		<PackageReleaseNotes>Can add more than one route to show multiples routes and route markers. Fixed issue when clear map.</PackageReleaseNotes>
 		<RepositoryType>Git</RepositoryType>
 		<PackageIcon>icon.png</PackageIcon>
 		<PackageIconUrl />

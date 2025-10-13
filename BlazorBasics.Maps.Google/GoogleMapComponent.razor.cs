@@ -84,30 +84,39 @@ public partial class GoogleMapComponent
         }
     }
 
-    public async Task ShowRoute(PositionPoint startPoint, PositionPoint endPoint, string travelMode = "DRIVING")
+    public async Task ShowRoute(RoutePoint startPoint, RoutePoint endPoint, string travelMode = "DRIVING", string routeId = "Route", string color = "#1a73e8")
     {
         if (GoogleMapsModule is not null)
         {
             await GoogleMapsModule.InvokeVoidAsync("showRoute",
-                startPoint.Latitude, startPoint.Longitude,
-                endPoint.Latitude, endPoint.Longitude,
-                travelMode);
+                routeId,
+                startPoint, endPoint,
+                travelMode, color);
         }
     }
 
-    public async Task ShowRouteWithWaypoints(IEnumerable<RoutePoint> points, string travelMode = "DRIVING")
+    public async Task ShowRouteWithWaypoints(IEnumerable<RoutePoint> points, string travelMode = "DRIVING", string routeId = "Route", string color = "#1a73e8")
     {
         if (GoogleMapsModule is not null)
         {
-            await GoogleMapsModule.InvokeVoidAsync("showRouteWithWaypoints", points, travelMode);
+            await GoogleMapsModule.InvokeVoidAsync("showRouteWithWaypoints", routeId, points, travelMode, color);
         }
     }
 
-    public async Task HighlightMarker(string id)
+    public async Task RemoveRoute(string routeId)
     {
         if (GoogleMapsModule is not null)
         {
-            await GoogleMapsModule.InvokeVoidAsync("highlightMarker", id);
+            await GoogleMapsModule.InvokeVoidAsync("removeRoute", routeId);
+        }
+    }
+
+
+    public async Task HighlightMarker(string id, string color = "#006400")
+    {
+        if (GoogleMapsModule is not null)
+        {
+            await GoogleMapsModule.InvokeVoidAsync("highlightMarker", id, color);
         }
     }
 
