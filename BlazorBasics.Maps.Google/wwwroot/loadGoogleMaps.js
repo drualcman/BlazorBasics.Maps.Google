@@ -304,14 +304,14 @@ function normalizePosition(pos) {
     return { lat: Number(pos.lat), lng: Number(pos.lng) };
 }
 
-function placeRouteMarker(routeId, point, position, isEndpoint, idx, color, localMarkers) {
+function placeRouteMarker(routeId, point, position, idx, color, localMarkers) {
     const normPos = normalizePosition(position) || toLatLng(point.position);
     const markerLat = normPos.lat;
     const markerLng = normPos.lng;
     const markerId = point.id || `${routeId}-p${idx}`;
 
     let markerContent;
-    if (point.svgIcon && isEndpoint) {
+    if (point.svgIcon) {
         const img = document.createElement("img");
         img.src = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(point.svgIcon)}`;
         img.style.transform = "translate(-50%, -50%)";
@@ -436,8 +436,8 @@ function showRoute(id, startPoint, endPoint, travelMode = "DRIVING", color = "#4
             const startLeg = route.legs[0];
             const endLeg = route.legs[route.legs.length - 1];
 
-            placeRouteMarker(id, startPoint, startLeg.start_location, true, 0, color, localMarkers);
-            placeRouteMarker(id, endPoint, endLeg.end_location, true, 1, color, localMarkers);
+            placeRouteMarker(id, startPoint, startLeg.start_location, 0, color, localMarkers);
+            placeRouteMarker(id, endPoint, endLeg.end_location, 1, color, localMarkers);
 
             routes.set(id, { renderer: renderer, markers: localMarkers });
         } else {
@@ -507,17 +507,17 @@ function showRouteWithWaypoints(id, points, travelMode = "DRIVING", color = "#42
             // Colocación de marcadores restaurada para snapping correcto
             // origen
             const startLeg = route.legs[0];
-            placeRouteMarker(id, points[0], startLeg.start_location, true, 0, color, localMarkers);
+            placeRouteMarker(id, points[0], startLeg.start_location, 0, color, localMarkers);
 
             // intermedios alineados con la ruta (leg.end_location)
             for (let i = 0; i < route.legs.length - 1; i++) {
                 const leg = route.legs[i];
-                placeRouteMarker(id, points[i + 1], leg.end_location, false, i + 1, color, localMarkers);
+                placeRouteMarker(id, points[i + 1], leg.end_location, i + 1, color, localMarkers);
             }
 
             // destino
             const lastLeg = route.legs[route.legs.length - 1];
-            placeRouteMarker(id, points[points.length - 1], lastLeg.end_location, true, points.length - 1, color, localMarkers);
+            placeRouteMarker(id, points[points.length - 1], lastLeg.end_location, points.length - 1, color, localMarkers);
 
             routes.set(id, { renderer: renderer, markers: localMarkers });
         } else {
