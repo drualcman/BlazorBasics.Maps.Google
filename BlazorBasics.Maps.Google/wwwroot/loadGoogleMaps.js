@@ -7,13 +7,11 @@ let geocoder = null;
 let mapClickListener = null;
 let dotNetHelper = null;
 let mapClickMethodName = null;
-let infoWindows = new Map();  // Nuevo: Trackea InfoWindows para cerrarlas en clean
+let infoWindows = new Map();
 
-// Variable global para la promesa (debe estar fuera de la función para que sea accesible)
 let loadResolve = null;
 let loadReject = null;
 
-// Función callback global que Google llama cuando la API está lista
 function googleMapsCallback() {
     if (window.google && window.google.maps) {
         if (loadResolve) {
@@ -30,7 +28,6 @@ function googleMapsCallback() {
     }
 }
 
-// Asignar al window para que sea global (solo una vez, al cargar el JS)
 if (!window.googleMapsCallback) {
     window.googleMapsCallback = googleMapsCallback;
 }
@@ -48,7 +45,6 @@ function load(apiKey, scriptId) {
         script.async = true;
         script.defer = true;
 
-        // El callback maneja el éxito, pero onerror para fallos de red
         script.onerror = () => {
             if (loadReject) {
                 loadReject("Failed to load Google Maps script.");
@@ -57,10 +53,7 @@ function load(apiKey, scriptId) {
             }
         };
 
-        // No necesitamos onload porque el callback lo reemplaza
         document.head.appendChild(script);
-
-        // Asignar la promesa actual
         loadResolve = resolve;
         loadReject = reject;
     });
@@ -83,12 +76,9 @@ function initMap(elementId, mapId) {
     console.info('initMap:', elementId);
 }
 
-// Función compartida para geocodificar y enviar a Blazor
 function sendClickToBlazor(lat, lng, markerId = null) {
-    // Enviar datos a Blazor vía JSInterop
     if (dotNetHelper && mapClickMethodName) {
         const latLng = new google.maps.LatLng(lat, lng);
-        // Realizar geocodificación inversa para obtener la dirección
         geocoder.geocode({ location: latLng }, (results, status) => {
             let address = '';
             let placeDetails = null;
@@ -96,7 +86,6 @@ function sendClickToBlazor(lat, lng, markerId = null) {
             if (status === google.maps.GeocoderStatus.OK && results && results.length > 0) {
                 const result = results[0];
                 address = result.formatted_address || '';
-                // Información adicional: componentes de la dirección (opcional)
                 placeDetails = {
                     streetNumber: '',
                     route: '',
@@ -130,21 +119,14 @@ function enableMapClick(dotNetReference, methodName) {
         console.warn("Map not initialized. Cannot enable click handling.");
         return false;
     }
-
-    if (mapClickListener) {
-        return false;
-    }
+    if (mapClickListener) return false;
 
     dotNetHelper = dotNetReference;
     mapClickMethodName = methodName;
 
     mapClickListener = google.maps.event.addListener(map, 'click', (event) => {
         const latLng = event.latLng;
-        const lat = latLng.lat();
-        const lng = latLng.lng();
-
-        // Llamar a la función compartida (con markerId null para clics en mapa)
-        sendClickToBlazor(lat, lng, null);
+        sendClickToBlazor(latLng.lat(), latLng.lng(), null);
     });
     console.info('Map click enabled');
     return true;
@@ -178,8 +160,8 @@ function addPoint(id, lat, lng, desc, svgIcon, htmlContent) {
     if (svgIcon) {
         const img = document.createElement("img");
         img.src = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svgIcon)}`;
-        img.style.transform = "translate(-50%, -50%)"; // centra el icono
-        img.style.position = "absolute"; // evita desplazamientos
+        img.style.transform = "translate(-50%, -50%)";
+        img.style.position = "absolute";
         markerContent = img;
     }
 
@@ -190,45 +172,29 @@ function addPoint(id, lat, lng, desc, svgIcon, htmlContent) {
         content: markerContent
     });
 
-    marker.id = id;  // Agregar ID al marker para remociones
+    marker.id = id;
     marker.originalContent = markerContent;
     marker.isFromRoute = false;
     markers.set(id, marker);
 
     let infoWindow = null;
     if (htmlContent) {
-        infoWindow = new google.maps.InfoWindow({
-            content: htmlContent
-        });
-        infoWindows.set(id, infoWindow);  // Trackear para cierre
+        infoWindow = new google.maps.InfoWindow({ content: htmlContent });
+        infoWindows.set(id, infoWindow);
 
-        // Handler para clic en marcador
         const onMarkerClick = () => {
-            const markerPosition = marker.position;  // Fijado: era normPos, que no existía
-
-            // Center smoothly if needed (without jumping too far)
+            const markerPosition = marker.position;
             const bounds = map.getBounds();
             if (!bounds || !bounds.contains(markerPosition)) {
                 map.panTo(markerPosition);
             }
-
-            // Open InfoWindow exactly over the marker position
             infoWindow.setPosition(markerPosition);
-            infoWindow.open({
-                map: map
-            });
-
-            // Enviar a Blazor con el ID del marcador
+            infoWindow.open({ map: map });
             sendClickToBlazor(lat, lng, id);
         };
-
         marker.addListener("click", onMarkerClick);
     } else {
-        // Si no hay htmlContent, aún así enviar a Blazor al clic
-        const onMarkerClick = () => {
-            sendClickToBlazor(lat, lng, id);
-        };
-        marker.addListener("click", onMarkerClick);
+        marker.addListener("click", () => sendClickToBlazor(lat, lng, id));
     }
     return true;
 }
@@ -247,7 +213,6 @@ function removePoint(id) {
     const marker = markers.get(id);
     try {
         marker.setMap(null);
-        // Cerrar InfoWindow si existe
         if (infoWindows.has(id)) {
             infoWindows.get(id).close();
             infoWindows.delete(id);
@@ -261,47 +226,41 @@ function removePoint(id) {
 }
 
 function cleanMap() {
-    // Remover marcadores
     markers.forEach((marker, id) => {
         try {
             marker.setMap(null);
-            // Cerrar InfoWindow asociada
             if (infoWindows.has(id)) {
                 infoWindows.get(id).close();
                 infoWindows.delete(id);
             }
-        } catch (e) {
-            console.error('Error removing marker', e);
-        }
+        } catch (e) { console.error('Error removing marker', e); }
     });
     markers.clear();
     console.log('Markers cleared');
 
-    // Remover rutas
     routes.forEach((routeData, id) => {
-        try {
-            removeRoute(id);
-        } catch (e) {
-            console.error('Error removing route', e);
-        }
+        try { removeRoute(id); } catch (e) { console.error('Error removing route', e); }
     });
     routes.clear();
     console.log('Routes cleared');
 
-    // Cierre exhaustivo de InfoWindows restantes (por si acaso)
     infoWindows.forEach((iw) => iw.close());
     infoWindows.clear();
     console.log('InfoWindows cleared');
     return true;
 }
 
-// Normaliza un objeto Posición que pueda venir del Directions result (LatLng object o LatLngLiteral)
 function normalizePosition(pos) {
     if (!pos) return null;
-    if (typeof pos.lat === "function") {
-        return { lat: pos.lat(), lng: pos.lng() };
-    }
+    if (typeof pos.lat === "function") return { lat: pos.lat(), lng: pos.lng() };
     return { lat: Number(pos.lat), lng: Number(pos.lng) };
+}
+
+function toLatLng(latLong) {
+    if (!latLong || typeof latLong.latitude === "undefined" || typeof latLong.longitude === "undefined") {
+        return { lat: 0, lng: 0 };
+    }
+    return { lat: Number(latLong.latitude), lng: Number(latLong.longitude) };
 }
 
 function placeRouteMarker(routeId, point, position, idx, color, localMarkers) {
@@ -317,7 +276,6 @@ function placeRouteMarker(routeId, point, position, idx, color, localMarkers) {
         img.style.transform = "translate(-50%, -50%)";
         img.style.position = "absolute";
         img.style.cursor = "pointer";
-        img.style.userSelect = "none";
         markerContent = img;
     } else {
         const div = document.createElement("div");
@@ -328,7 +286,6 @@ function placeRouteMarker(routeId, point, position, idx, color, localMarkers) {
         div.style.transform = "translate(-50%, -50%)";
         div.style.position = "absolute";
         div.style.cursor = "pointer";
-        div.style.userSelect = "none";
         markerContent = div;
     }
 
@@ -338,65 +295,85 @@ function placeRouteMarker(routeId, point, position, idx, color, localMarkers) {
         content: markerContent
     });
 
-    marker.id = markerId;  // Asignar ID para remociones
+    marker.id = markerId;
     marker.originalContent = markerContent;
     marker.isFromRoute = true;
     markers.set(markerId, marker);
     localMarkers.push(marker);
 
-    let infoWindow = null;
     if (point.htmlContent) {
-        infoWindow = new google.maps.InfoWindow({
-            content: point.htmlContent
-        });
-        infoWindows.set(markerId, infoWindow);  // Trackear
-    }
+        const iw = new google.maps.InfoWindow({ content: point.htmlContent });
+        infoWindows.set(markerId, iw);
 
-    const attachClickHandler = () => {
-        const onClick = () => {
-            if (activeMarker && activeMarker !== marker) {
-                try { activeMarker.content = activeMarker.originalContent; } catch { }
-            }
-
-            const clone = markerContent.cloneNode(true);
-            clone.style.transform = "translate(-50%, -50%) scale(1.6)";
-            clone.style.position = "absolute";
-            marker.content = clone;
-            activeMarker = marker;
-
-            setTimeout(() => {
-                if (activeMarker === marker) {
-                    try { marker.content = marker.originalContent; } catch { }
-                    activeMarker = null;
-                }
-            }, 3000);
-
-            const markerPosition = marker.position || normPos;
+        const onMarkerClick = () => {
+            const markerPosition = marker.position;
             const bounds = map.getBounds();
             if (!bounds || !bounds.contains(markerPosition)) {
                 map.panTo(markerPosition);
             }
-
-            if (infoWindow) {
-                infoWindow.setPosition(markerPosition);
-                infoWindow.open({ map: map });
-            }
-
+            iw.setPosition(markerPosition);
+            iw.open({ map: map });
             sendClickToBlazor(markerLat, markerLng, markerId);
         };
 
+        // Escucha el click tanto si el marker usa content HTML como imagen
         try {
-            markerContent.addEventListener("click", onClick);
+            markerContent.addEventListener("click", onMarkerClick);
         } catch {
-            try {
-                google.maps.event.addListener(marker, "gmp-click", onClick);
-            } catch (ee) {
-                console.error("Could not attach click handler to marker content.", ee);
-            }
+            google.maps.event.addListener(marker, "gmp-click", onMarkerClick);
         }
+
+    } else {
+        // Sin InfoWindow, solo reporta el click
+        try {
+            markerContent.addEventListener("click", () => sendClickToBlazor(markerLat, markerLng, markerId));
+        } catch {
+            google.maps.event.addListener(marker, "gmp-click", () => sendClickToBlazor(markerLat, markerLng, markerId));
+        }
+    }
+
+}
+
+function createDirectionsRenderer(color, arrowOptions = null) {
+    const polylineOptions = {
+        strokeColor: color || "#4285F4",
+        strokeOpacity: 0.8,
+        strokeWeight: 5
     };
 
-    attachClickHandler();
+    // Add arrows if enabled
+    if (arrowOptions && arrowOptions.enabled === true) {
+        const arrowTypes = [
+            "CIRCLE",                  // 0
+            "FORWARD_CLOSED_ARROW",    // 1
+            "FORWARD_OPEN_ARROW",      // 2
+            "BACKWARD_CLOSED_ARROW",   // 3
+            "BACKWARD_OPEN_ARROW",     // 4
+        ];
+        let arrowTypeString = arrowTypes[arrowOptions.arrowType] || "FORWARD_CLOSED_ARROW";
+
+        if (google.maps.SymbolPath[arrowTypeString] === undefined || google.maps.SymbolPath[arrowTypeString] === null) {
+            console.warn(`Arrow type ${arrowTypeString} not found, using default`);
+            arrowOptions.arrowType = 1;
+        }
+
+        polylineOptions.icons = [{
+            icon: {
+                path: arrowOptions.arrowType,
+                scale: arrowOptions.scale || 10,
+                strokeColor: arrowOptions.color || color || "#1a73e8"
+            },
+            offset: arrowOptions.offset ? arrowOptions.offset + "%" : "50%",
+            repeat: (arrowOptions.repeatPixels || 100) + "px"
+        }];
+    }
+
+    return new google.maps.DirectionsRenderer({
+        suppressMarkers: true,
+        preserveViewport: true,
+        polylineOptions: polylineOptions,
+        map: map
+    });
 }
 
 function showRoute(id, startPoint, endPoint, travelMode = "DRIVING", color = "#4285F4") {
@@ -409,13 +386,10 @@ function showRoute(id, startPoint, endPoint, travelMode = "DRIVING", color = "#4
         console.error("StartPoint and EndPoint are required.");
         return false;
     }
+    if (routes.has(id)) removeRoute(id);
 
-    // Si ya existe una ruta con este ID, la eliminamos antes
-    if (routes.has(id)) {
-        removeRoute(id);
-    }
-
-    const renderer = createDirectionsRenderer(color);
+    const arrowOptions = startPoint.arrowOptions || null;
+    const renderer = createDirectionsRenderer(color, arrowOptions);
 
     const origin = toLatLng(startPoint.position);
     const destination = toLatLng(endPoint.position);
@@ -427,140 +401,99 @@ function showRoute(id, startPoint, endPoint, travelMode = "DRIVING", color = "#4
     };
 
     directionsService.route(request, (result, status) => {
-        if (status === google.maps.DirectionsStatus.OK && result && result.routes && result.routes.length > 0) {
+        if (status === google.maps.DirectionsStatus.OK && result && result.routes.length > 0) {
             renderer.setDirections(result);
             const route = result.routes[0];
             const localMarkers = [];
-
-            // Marcadores de inicio y fin (como en showRouteWithWaypoints)
             const startLeg = route.legs[0];
             const endLeg = route.legs[route.legs.length - 1];
-
             placeRouteMarker(id, startPoint, startLeg.start_location, 0, color, localMarkers);
             placeRouteMarker(id, endPoint, endLeg.end_location, 1, color, localMarkers);
-
             routes.set(id, { renderer: renderer, markers: localMarkers });
         } else {
             console.warn("Directions request failed due to: " + status);
         }
     });
-
     return true;
 }
 
-// Helper para asegurar que siempre devolvemos números desde tu DTO
-function toLatLng(latLong) {
-    if (!latLong || typeof latLong.latitude === "undefined" || typeof latLong.longitude === "undefined") {
-        console.error("Invalid latLong object received:", latLong);
-        return { lat: 0, lng: 0 };
-    }
-    return {
-        lat: Number(latLong.latitude),
-        lng: Number(latLong.longitude)
-    };
-};
-
-function showRouteWithWaypoints(id, points, travelMode = "DRIVING", color = "#4285F4") {
+function showRouteWithWaypoints(id, points, travelMode = "DRIVING", defaultColor = "#4285F4") {
     if (!map || !directionsService) {
         console.warn("Map not initialized. Cannot showRouteWithWaypoints.");
         return false;
     }
-
-    // Eliminar ruta previa si existe
-    if (routes.has(id)) {
-        removeRoute(id);
-    }
-
-    const renderer = createDirectionsRenderer(color);
-    const localMarkers = [];
-
+    if (routes.has(id)) removeRoute(id);
     if (!points || points.length < 2) {
         console.warn("At least 2 points (start and end) are required.");
         return false;
     }
 
-    const origin = toLatLng(points[0].position);
-    const destination = toLatLng(points[points.length - 1].position);
+    const localMarkers = [];
+    const renderers = [];
 
-    const waypoints = [];
-    for (let i = 1; i < points.length - 1; i++) {
-        waypoints.push({
-            location: toLatLng(points[i].position),
-            stopover: true
+    // Cada tramo se calcula por separado
+    for (let i = 0; i < points.length - 1; i++) {
+        const start = points[i];
+        const end = points[i + 1];
+
+        const routeColour = (start.routeColour && start.routeColour.trim() !== "") ? start.routeColour : defaultColor;
+        const pointColour = (start.pointColour && start.pointColour.trim() !== "") ? start.pointColour : defaultColor;
+        const arrowOptions = start.arrowOptions || null;
+        const renderer = createDirectionsRenderer(routeColour, arrowOptions);
+        renderers.push(renderer);
+
+        const origin = toLatLng(start.position);
+        const destination = toLatLng(end.position);
+
+        const request = {
+            origin: origin,
+            destination: destination,
+            travelMode: google.maps.TravelMode[travelMode]
+        };
+
+        directionsService.route(request, (result, status) => {
+            if (status === google.maps.DirectionsStatus.OK && result && result.routes.length > 0) {
+                renderer.setDirections(result);
+                const route = result.routes[0];
+                const leg = route.legs[0];
+
+                // Marcadores de inicio y fin
+                placeRouteMarker(id, start, leg.start_location, i, pointColour, localMarkers);
+                if (i === points.length - 2) {
+                    placeRouteMarker(id, end, leg.end_location, i + 1, pointColour, localMarkers);
+                }
+            } else {
+                console.warn("Directions request failed for segment " + i + " due to: " + status);
+            }
         });
     }
 
-    const request = {
-        origin: origin,
-        destination: destination,
-        waypoints: waypoints,
-        optimizeWaypoints: false,
-        travelMode: google.maps.TravelMode[travelMode]
-    };
-
-    directionsService.route(request, (result, status) => {
-        if (status === google.maps.DirectionsStatus.OK && result && result.routes && result.routes.length > 0) {
-            renderer.setDirections(result);
-
-            const route = result.routes[0];
-
-            // Colocación de marcadores restaurada para snapping correcto
-            // origen
-            const startLeg = route.legs[0];
-            placeRouteMarker(id, points[0], startLeg.start_location, 0, color, localMarkers);
-
-            // intermedios alineados con la ruta (leg.end_location)
-            for (let i = 0; i < route.legs.length - 1; i++) {
-                const leg = route.legs[i];
-                placeRouteMarker(id, points[i + 1], leg.end_location, i + 1, color, localMarkers);
-            }
-
-            // destino
-            const lastLeg = route.legs[route.legs.length - 1];
-            placeRouteMarker(id, points[points.length - 1], lastLeg.end_location, points.length - 1, color, localMarkers);
-
-            routes.set(id, { renderer: renderer, markers: localMarkers });
-        } else {
-            console.warn("Directions request failed due to: " + status);
-        }
-    });
-
+    // Guardar renderers y markers
+    routes.set(id, { renderer: renderers, markers: localMarkers });
     return true;
 }
+
 
 function highlightMarker(id, color = "#006400") {
     if (!map || !markers.has(id)) {
         console.warn("Map not initialized. Cannot highlightMarker or not found marker ID:", id, markers);
         return false;
     }
-
     const marker = markers.get(id);
-
-    // Restore previous active marker if exists
     if (activeMarker && activeMarker !== marker) {
-        try { activeMarker.content = activeMarker.originalContent; } catch { /* ignore */ }
+        try { activeMarker.content = activeMarker.originalContent; } catch { }
     }
+    if (!marker.originalContent) return false;
 
-    if (!marker.originalContent) {
-        console.warn("Marker " + id + " has no original content stored.");
-        return false;
-    }
-
-    // Clone original content
     const clone = marker.originalContent.cloneNode(true);
     clone.style.position = "absolute";
     clone.style.transform = "translate(-50%, -50%) scale(1.6)";
-
-    // Apply highlight color if background-based (circle/div)
     if (clone.style && clone.style.backgroundColor) {
         clone.style.backgroundColor = color;
     }
-
-    // If it’s an <img> (e.g., SVG marker), we can tint via CSS filter
     if (clone.tagName === "IMG") {
         clone.style.filter = "drop-shadow(0 0 6px " + color + ")";
     }
-
     marker.content = clone;
     activeMarker = marker;
     return true;
@@ -571,30 +504,16 @@ function unhighlightMarker(id) {
         console.warn('unhighlightMarker: Not found marker ID:', id);
         return false;
     }
-
     const marker = markers.get(id);
     if (marker.originalContent) {
         marker.content = marker.originalContent;
     }
-
     if (activeMarker && activeMarker === marker) {
         activeMarker = null;
     }
     return true;
 }
 
-function createDirectionsRenderer(color) {
-    return new google.maps.DirectionsRenderer({
-        suppressMarkers: true,
-        preserveViewport: true,
-        polylineOptions: {
-            strokeColor: color || "#4285F4", // default Google blue
-            strokeOpacity: 0.8,
-            strokeWeight: 5
-        },
-        map: map
-    });
-}
 
 function removeRoute(id) {
     if (!routes.has(id)) {
@@ -626,7 +545,15 @@ function removeRoute(id) {
     // Limpiar renderer
     if (routeData.renderer) {
         try {
-            routeData.renderer.setMap(null);
+            if (Array.isArray(routeData.renderer)) {
+                routeData.renderer.forEach(r => {
+                    if (r && typeof r.setMap === "function") {
+                        r.setMap(null);
+                    }
+                });
+            } else if (typeof routeData.renderer.setMap === "function") {
+                routeData.renderer.setMap(null);
+            }
         } catch (e) {
             console.error('Error on renderer:', e);
         }

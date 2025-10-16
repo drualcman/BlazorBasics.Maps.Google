@@ -5,7 +5,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-		<Version>1.0.3</Version>
+		<Version>1.1.4</Version>
 		<Authors>Sergi Ortiz Gomez</Authors>
 		<Company>DrUalcman</Company>
 		<Description>
@@ -17,7 +17,7 @@
 		<RepositoryUrl>https://github.com/drualcman/BlazorBasics.Maps.Google</RepositoryUrl>
 		<PackageProjectUrl>https://github.com/drualcman/BlazorBasics.Maps.Google</PackageProjectUrl>
 		<PackageTags>Components;Blazor;WebAssembly;Maps;Google Maps;</PackageTags>
-		<PackageReleaseNotes>Fixed show icon always when icon is send with the point.</PackageReleaseNotes>
+		<PackageReleaseNotes>Improved how to show the arrows fro the directions.</PackageReleaseNotes>
 		<RepositoryType>Git</RepositoryType>
 		<PackageIcon>icon.png</PackageIcon>
 		<PackageIconUrl />
