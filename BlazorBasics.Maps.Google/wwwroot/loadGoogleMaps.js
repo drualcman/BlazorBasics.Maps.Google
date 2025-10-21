@@ -204,7 +204,7 @@ function addPoint(id, lat, lng, desc, svgIcon, htmlContent) {
 
 function centerMap(lat, lng) {
     if (!map) return false;
-    map.setCenter({ lat: lat, lng: lng });
+    map.setCenter({ lat: lat, lng: lng });  
     return true;
 }
 
@@ -373,6 +373,7 @@ function showRoute(id, startPoint, endPoint, travelMode = "DRIVING", color = "#4
         console.error("StartPoint and EndPoint are required.");
         return false;
     }
+
     if (routes.has(id)) removeRoute(id);
 
     const arrowOptions = startPoint.arrowOptions || null;
@@ -392,15 +393,24 @@ function showRoute(id, startPoint, endPoint, travelMode = "DRIVING", color = "#4
             renderer.setDirections(result);
             const route = result.routes[0];
             const localMarkers = [];
+
+            // Coloca los puntos
             const startLeg = route.legs[0];
             const endLeg = route.legs[route.legs.length - 1];
             placeRouteMarker(id, startPoint, startLeg.start_location, 0, color, localMarkers);
             placeRouteMarker(id, endPoint, endLeg.end_location, 1, color, localMarkers);
+
+            // Ajustar el zoom automáticamente a toda la ruta
+            const bounds = new google.maps.LatLngBounds();
+            route.overview_path.forEach((pos) => bounds.extend(pos));
+            map.fitBounds(bounds);
+
             routes.set(id, { renderer: renderer, markers: localMarkers });
         } else {
             console.warn("Directions request failed due to: " + status);
         }
     });
+
     return true;
 }
 
@@ -417,8 +427,8 @@ function showRouteWithWaypoints(id, points, travelMode = "DRIVING", defaultColor
 
     const localMarkers = [];
     const renderers = [];
+    const bounds = new google.maps.LatLngBounds(); // acumula todos los puntos
 
-    // Cada tramo se calcula por separado
     for (let i = 0; i < points.length - 1; i++) {
         const start = points[i];
         const end = points[i + 1];
@@ -444,10 +454,17 @@ function showRouteWithWaypoints(id, points, travelMode = "DRIVING", defaultColor
                 const route = result.routes[0];
                 const leg = route.legs[0];
 
-                // Marcadores de inicio y fin
                 placeRouteMarker(id, start, leg.start_location, i, pointColour, localMarkers);
                 if (i === points.length - 2) {
                     placeRouteMarker(id, end, leg.end_location, i + 1, pointColour, localMarkers);
+                }
+
+                // Extiende los límites con todos los puntos del tramo
+                route.overview_path.forEach((pos) => bounds.extend(pos));
+
+                // Si es el último tramo, ajusta el zoom
+                if (i === points.length - 2) {
+                    map.fitBounds(bounds);
                 }
             } else {
                 console.warn("Directions request failed for segment " + i + " due to: " + status);
@@ -455,7 +472,6 @@ function showRouteWithWaypoints(id, points, travelMode = "DRIVING", defaultColor
         });
     }
 
-    // Guardar renderers y markers
     routes.set(id, { renderer: renderers, markers: localMarkers });
     return true;
 }
