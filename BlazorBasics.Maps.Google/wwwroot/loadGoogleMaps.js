@@ -8,7 +8,8 @@ let mapClickListener = null;
 let dotNetHelper = null;
 let mapClickMethodName = null;
 let infoWindows = new Map();
-
+let myElementId = null;
+let myMapId = null;
 let loadResolve = null;
 let loadReject = null;
 
@@ -60,7 +61,9 @@ function load(apiKey, scriptId) {
 }
 
 function initMap(elementId, mapId) {
-    map = new google.maps.Map(document.getElementById(elementId), {
+    myElementId = elementId;
+    myMapId = mapId;
+    map = new google.maps.Map(document.getElementById(myElementId), {
         center: { lat: 0, lng: 0 },
         zoom: 16,
         fullscreenControl: false,
@@ -68,12 +71,12 @@ function initMap(elementId, mapId) {
         mapTypeControl: false,
         rotateControl: false,
         gestureHandling: "cooperative",
-        mapId: mapId
+        mapId: myMapId
     });
 
     directionsService = new google.maps.DirectionsService();
     geocoder = new google.maps.Geocoder();
-    console.info('initMap:', elementId);
+    console.info('initMap:', myElementId);
 }
 
 function sendClickToBlazor(lat, lng, markerId = null) {
@@ -226,27 +229,11 @@ function removePoint(id) {
 }
 
 function cleanMap() {
-    markers.forEach((marker, id) => {
-        try {
-            marker.setMap(null);
-            if (infoWindows.has(id)) {
-                infoWindows.get(id).close();
-                infoWindows.delete(id);
-            }
-        } catch (e) { console.error('Error removing marker', e); }
-    });
     markers.clear();
-    console.log('Markers cleared');
-
-    routes.forEach((routeData, id) => {
-        try { removeRoute(id); } catch (e) { console.error('Error removing route', e); }
-    });
     routes.clear();
-    console.log('Routes cleared');
-
-    infoWindows.forEach((iw) => iw.close());
     infoWindows.clear();
-    console.log('InfoWindows cleared');
+    initMap(myElementId, myMapId);
+    console.log('Map cleared');
     return true;
 }
 
