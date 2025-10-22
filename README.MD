@@ -90,12 +90,13 @@ The library includes two main models:
 - **`RoutePoint`**:
   - Represents a marker on the map with additional metadata.
   - Properties:
-    - `Id`: Unique identifier for the point.
-    - `Position`: A `PositionPoint` specifying the location.
-    - `Description`: A description for the marker.
-    - `SvgIcon`: An SVG string for a custom marker icon.
-    - `HtmlContent`: HTML content for the marker's info window.
-    - `Color`: Optional color for the marker (default: `"black"`).
+    - Id: Unique identifier for the point.
+    - Position: A `PositionPoint` specifying the location.
+    - Description: A description for the marker.
+    - SvgIcon: An SVG string for a custom marker icon.
+    - HtmlContent: HTML content for the marker's info window.
+    - Color: Optional color for the marker. Default `"black"`.
+    - ArrowOptions: A `RouteArrowOptions`. Optional settings for displaying arrows on routes. Default `new RouteArrowOptions()`.
   - Example:
     ```csharp
     var routePoint = new RoutePoint(
@@ -104,9 +105,29 @@ The library includes two main models:
         description: "San Francisco",
         svgIcon: "<svg>...</svg>",
         htmlContent: "<h3>San Francisco</h3>",
-        color: "blue"
+        color: "blue",
+        arrowOptions: new RouteArrowOptions()
     );
     ```
+
+- **`ArrowType`**:
+  - Enumeral with Google Arrow Types.
+  - Values:
+    - `CIRCLE`
+    - `FORWARD_CLOSED_ARROW`
+    - `FORWARD_OPEN_ARROW,`
+    - `BACKWARD_CLOSED_ARROW,`
+    - `BACKWARD_OPEN_ARROW`
+
+- **`RouteArrowOptions`**:
+  - Set parameters to show arrows with flow direction.
+  - Properties:
+    - Enabled: Show or not the arrows. Default false.
+    - ArrowType: Enumeral `ArrowType` with display arrow type. Default `ArrowType.FORWARD_OPEN_ARROW`.
+    - Scale: Arrow scale. Default 5.0
+    - Color: Arrow color. Default "#1a73e8".
+    - Offset: Arrow offset. Default 50.
+    - RepeatPixels: Repeat the arrow every X pixels. Default 100.
   
 - **`MapClickEventArgs`**:
     - Event arguments for the OnClick callback. Contains information about the point where the click was made.
@@ -116,7 +137,7 @@ The library includes two main models:
       - Address: A string containing the address formatted at the point of the click (reverse geocoding).
       - Details: An AddressDetails object with the address components broken down.
 
-  - **`AddressDetails`**
+- **`AddressDetails`**
     - Contains the broken-down components of an address obtained from reverse geocoding.
     - Properties: 
       - Street Number

@@ -17,7 +17,7 @@
 		<RepositoryUrl>https://github.com/drualcman/BlazorBasics.Maps.Google</RepositoryUrl>
 		<PackageProjectUrl>https://github.com/drualcman/BlazorBasics.Maps.Google</PackageProjectUrl>
 		<PackageTags>Components;Blazor;WebAssembly;Maps;Google Maps;</PackageTags>
-		<PackageReleaseNotes>Improved how to show the arrows fro the directions.</PackageReleaseNotes>
+		<PackageReleaseNotes>Improved how to show the arrows fro the directions. Improve how to clean map fro full clearing the enviroment. Update dependencies.</PackageReleaseNotes>
 		<RepositoryType>Git</RepositoryType>
 		<PackageIcon>icon.png</PackageIcon>
 		<PackageIconUrl />
@@ -43,7 +43,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="9.0.9" />
+		<PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="9.0.10" />
 	</ItemGroup>
 
 </Project>
