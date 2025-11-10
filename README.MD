@@ -67,13 +67,15 @@ To display a Google Map, include the `GoogleMapComponent` in your Razor page and
 
 ### Component Parameters
 
-| Parameter   | Type                               | Description                                                                   |
-|-------------|------------------------------------|-------------------------------------------------------------------------------|
-| `ApiKey`    | `string`                           | **Required**. Your Google Maps API key.                                       |
-| `MapId`     | `string`                           | **Required**. A custom map ID for styled maps.                                |
-| `OnMapReady`| `EventCallback`                    | Optional. A callback invoked when the map is fully loaded and ready to use.   |
-| `OnClick`   | `EventCallback<MapClickEventArgs>` | Optional. A callback that is invoked when the map or a marker is clicked.     |
-|             |                                    | It returns the coordinates and address details.                               |
+| Parameter                  | Type                               | Description                                                                            |
+|----------------------------|------------------------------------|----------------------------------------------------------------------------------------|
+| `ApiKey`                   | `string`                           | **Required**. Your Google Maps API key.                                                |
+| `MapId`                    | `string`                           | **Required**. A custom map ID for styled maps.                                         |
+| `ClosePopupWhenClickOnMap` | `bool`                             | Optional. Enable or disable automatic close the popup when click on map. Default true. |
+| `ClosePopupWhenClickOther` | `bool`                             | Optional. Enable or disable automatic close the popup when click mark. Default false.  |
+| `OnMapReady`               | `EventCallback`                    | Optional. A callback invoked when the map is fully loaded and ready to use.            |
+| `OnClick`                  | `EventCallback<MapClickEventArgs>` | Optional. A callback that is invoked when the map or a marker is clicked.              |
+|                            |                                    | It returns the coordinates and address details.                                        |
 
 ### Models
 
@@ -223,6 +225,26 @@ The `GoogleMapComponent` provides the following methods to interact with the map
    - Example:
      ```csharp
      await mapComponent.RemoveRoute("route1");
+     ```
+
+10. **`CloseAllPopups()`**:
+   - Close all open popups in the map.
+   - Example:
+     ```csharp
+     await mapComponent.CloseAllPopups();
+
+11. **`EnablePopupCloseOnClickOutside()`**:
+   - Enable close popup when click on map.
+   - Example:
+     ```csharp
+     await mapComponent.EnablePopupCloseOnClickOutside();
+     ```
+
+12. **`DisablePopupCloseOnClickOutside()`**:
+   - Disable close popup when click on map.
+   - Example:
+     ```csharp
+     await mapComponent.EnablePopupCloseOnClickOutside();
      ```
 
 ### Example: Full Implementation

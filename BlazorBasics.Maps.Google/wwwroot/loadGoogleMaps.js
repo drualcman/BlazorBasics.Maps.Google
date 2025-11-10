@@ -3,6 +3,7 @@ let map = null;
 let directionsService = null;
 let routes = new Map();
 let activeMarker = null;
+let activeInfoWindow = null;
 let geocoder = null;
 let mapClickListener = null;
 let dotNetHelper = null;
@@ -12,6 +13,7 @@ let myElementId = null;
 let myMapId = null;
 let loadResolve = null;
 let loadReject = null;
+let closePopupWhenClickOther = false;
 
 function googleMapsCallback() {
     if (window.google && window.google.maps) {
@@ -60,7 +62,8 @@ function load(apiKey, scriptId) {
     });
 }
 
-function initMap(elementId, mapId) {
+function initMap(elementId, mapId, closeOnClick) {
+    closePopupWhenClickOther = closeOnClick ?? false;
     myElementId = elementId;
     myMapId = mapId;
     map = new google.maps.Map(document.getElementById(myElementId), {
@@ -185,19 +188,28 @@ function addPoint(id, lat, lng, desc, svgIcon, htmlContent) {
         infoWindow = new google.maps.InfoWindow({ content: htmlContent });
         infoWindows.set(id, infoWindow);
 
-        const onMarkerClick = () => {
+        const onMarkerClick = (event) => {
+            event.stopPropagation();
             const markerPosition = marker.position;
             const bounds = map.getBounds();
             if (!bounds || !bounds.contains(markerPosition)) {
                 map.panTo(markerPosition);
             }
             infoWindow.setPosition(markerPosition);
-            infoWindow.open({ map: map });
+            openInfoWindow(infoWindow, marker);
             sendClickToBlazor(lat, lng, id);
         };
-        marker.addListener("click", onMarkerClick);
+        if (markerContent) {
+            markerContent.style.pointerEvents = 'auto';
+            markerContent.addEventListener('click', onMarkerClick);
+        } else {
+            marker.addListener("click", onMarkerClick);
+        }
     } else {
-        marker.addListener("click", () => sendClickToBlazor(lat, lng, id));
+        marker.addListener("click", (event) => {
+            event.stopPropagation();
+            sendClickToBlazor(lat, lng, id);
+        });
     }
     return true;
 }
@@ -232,7 +244,7 @@ function cleanMap() {
     markers.clear();
     routes.clear();
     infoWindows.clear();
-    initMap(myElementId, myMapId);
+    initMap(myElementId, myMapId, closePopupWhenClickOther);
     console.log('Map cleared');
     return true;
 }
@@ -292,18 +304,18 @@ function placeRouteMarker(routeId, point, position, idx, color, localMarkers) {
         const iw = new google.maps.InfoWindow({ content: point.htmlContent });
         infoWindows.set(markerId, iw);
 
-        const onMarkerClick = () => {
+        const onMarkerClick = (event) => {
+            event.stopPropagation();
             const markerPosition = marker.position;
             const bounds = map.getBounds();
             if (!bounds || !bounds.contains(markerPosition)) {
                 map.panTo(markerPosition);
             }
             iw.setPosition(markerPosition);
-            iw.open({ map: map });
+            openInfoWindow(iw, marker);
             sendClickToBlazor(markerLat, markerLng, markerId);
         };
 
-        // Escucha el click tanto si el marker usa content HTML como imagen
         try {
             markerContent.addEventListener("click", onMarkerClick);
         } catch {
@@ -311,14 +323,18 @@ function placeRouteMarker(routeId, point, position, idx, color, localMarkers) {
         }
 
     } else {
-        // Sin InfoWindow, solo reporta el click
         try {
-            markerContent.addEventListener("click", () => sendClickToBlazor(markerLat, markerLng, markerId));
+            markerContent.addEventListener("click", (event) => {
+                event.stopPropagation();
+                sendClickToBlazor(markerLat, markerLng, markerId);
+            });
         } catch {
-            google.maps.event.addListener(marker, "gmp-click", () => sendClickToBlazor(markerLat, markerLng, markerId));
+            google.maps.event.addListener(marker, "gmp-click", (event) => {
+                event.stopPropagation();
+                sendClickToBlazor(markerLat, markerLng, markerId);
+            });
         }
     }
-
 }
 
 function createDirectionsRenderer(color, arrowOptions = null) {
@@ -476,7 +492,6 @@ function showRouteWithWaypoints(id, points, travelMode = "DRIVING", defaultColor
     return true;
 }
 
-
 function highlightMarker(id, color = "#006400") {
     if (!map || !markers.has(id)) {
         console.warn("Map not initialized. Cannot highlightMarker or not found marker ID:", id, markers);
@@ -566,6 +581,50 @@ function removeRoute(id) {
     return true;
 }
 
+function closeAllPopups() {
+    infoWindows.forEach((infoWindow, id) => {
+        try {
+            infoWindow.close();
+        } catch (e) {
+            console.warn('Error closing info window:', e);
+        }
+    });
+    return true;
+}
+
+let popupClickListener = null;
+
+function enablePopupCloseOnClickOutside() {
+    if (!map || popupClickListener) return false;
+
+    popupClickListener = google.maps.event.addListener(map, 'click', (event) => {
+        closeAllPopups();
+    });
+    console.info('Popup close on outside click enabled');
+    return true;
+}
+
+function disablePopupCloseOnClickOutside() {
+    if (popupClickListener) {
+        google.maps.event.removeListener(popupClickListener);
+        popupClickListener = null;
+        console.info('Popup close on outside click disabled');
+        return true;
+    }
+    return false;
+}
+
+function openInfoWindow(iw, marker) {
+    if (closePopupWhenClickOther) {
+        if (activeInfoWindow && activeInfoWindow.close) {
+            activeInfoWindow.close();
+        }
+    }
+    iw.open({ map: map, anchor: marker });
+    activeInfoWindow = iw;
+}
+
+
 // Export API
 export {
     load,
@@ -580,5 +639,8 @@ export {
     showRouteWithWaypoints,
     removeRoute,
     highlightMarker,
-    unhighlightMarker
+    unhighlightMarker,
+    closeAllPopups,
+    enablePopupCloseOnClickOutside,
+    disablePopupCloseOnClickOutside
 };

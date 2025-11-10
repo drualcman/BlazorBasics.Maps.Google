@@ -1,11 +1,11 @@
-<Project Sdk="Microsoft.NET.Sdk.Razor">
+﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
 
 	<PropertyGroup>
 		<TargetFramework>net9.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-		<Version>1.1.4</Version>
+		<Version>1.1.5</Version>
 		<Authors>Sergi Ortiz Gomez</Authors>
 		<Company>DrUalcman</Company>
 		<Description>
@@ -17,7 +17,7 @@
 		<RepositoryUrl>https://github.com/drualcman/BlazorBasics.Maps.Google</RepositoryUrl>
 		<PackageProjectUrl>https://github.com/drualcman/BlazorBasics.Maps.Google</PackageProjectUrl>
 		<PackageTags>Components;Blazor;WebAssembly;Maps;Google Maps;</PackageTags>
-		<PackageReleaseNotes>Improved how to show the arrows fro the directions. Improve how to clean map fro full clearing the enviroment. Update dependencies.</PackageReleaseNotes>
+		<PackageReleaseNotes>Add new methods EnablePopupCloseOnClickOutside, DisablePopupCloseOnClickOutside and CloseAllPopups.</PackageReleaseNotes>
 		<RepositoryType>Git</RepositoryType>
 		<PackageIcon>icon.png</PackageIcon>
 		<PackageIconUrl />
